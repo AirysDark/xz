@@ -19,9 +19,9 @@ jobs:
             autoconf \
             automake \
             libtool \
+            pkg-config \
             gettext \
             autopoint \
-            pkg-config \
             wget \
             unzip \
             file
@@ -33,25 +33,32 @@ jobs:
 
       - name: Setup toolchain
         run: |
+          echo "NDK=$PWD/android-ndk-r26d" >> $GITHUB_ENV
           echo "TOOLCHAIN=$PWD/android-ndk-r26d/toolchains/llvm/prebuilt/linux-x86_64/bin" >> $GITHUB_ENV
 
       - name: Generate configure
         run: |
+          chmod +x autogen.sh
           ./autogen.sh
 
-      - name: Configure
+      - name: Configure build
         run: |
-          ./configure \
-            CC=$TOOLCHAIN/aarch64-linux-android21-clang \
-            --host=aarch64-linux-android \
-            --enable-static \
-            --disable-shared \
-            --disable-lzmadec \
-            --disable-lzmainfo \
-            --disable-xzdec \
-            --disable-scripts
+          export CC=$TOOLCHAIN/aarch64-linux-android21-clang
+          export CXX=$TOOLCHAIN/aarch64-linux-android21-clang++
+          export AR=$TOOLCHAIN/llvm-ar
+          export RANLIB=$TOOLCHAIN/llvm-ranlib
+          export STRIP=$TOOLCHAIN/llvm-strip
 
-      - name: Build
+          export SYSROOT=$NDK/toolchains/llvm/prebuilt/linux-x86_64/sysroot
+          export CFLAGS="--sysroot=$SYSROOT"
+          export LDFLAGS="--sysroot=$SYSROOT"
+
+          ./configure \
+            --host=aarch64-linux-android \
+            --disable-shared \
+            --enable-static
+
+      - name: Compile
         run: |
           make -j$(nproc)
 
@@ -59,8 +66,9 @@ jobs:
         run: |
           mkdir release
           cp src/xz/xz release/xz
+          chmod +x release/xz
 
-      - name: Verify
+      - name: Verify binary
         run: |
           file release/xz
 
