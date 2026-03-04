@@ -16,22 +16,23 @@ jobs:
         run: |
           sudo apt update
           sudo apt install -y \
-          build-essential \
-          autoconf \
-          automake \
-          libtool \
-          pkg-config \
-          gettext \
-          wget \
-          unzip \
-          file
+            build-essential \
+            autoconf \
+            automake \
+            libtool \
+            pkg-config \
+            gettext \
+            autopoint \
+            wget \
+            unzip \
+            file
 
       - name: Download Android NDK
         run: |
           wget https://dl.google.com/android/repository/android-ndk-r26d-linux.zip
           unzip android-ndk-r26d-linux.zip
 
-      - name: Setup toolchain
+      - name: Setup NDK toolchain
         run: |
           echo "NDK=$PWD/android-ndk-r26d" >> $GITHUB_ENV
           echo "TOOLCHAIN=$PWD/android-ndk-r26d/toolchains/llvm/prebuilt/linux-x86_64/bin" >> $GITHUB_ENV
