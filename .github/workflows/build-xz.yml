@@ -13,6 +13,9 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
       - name: Set version
         run: echo "XZ_VERSION=${{ github.event.inputs.version }}" >> $GITHUB_ENV
 
@@ -21,9 +24,8 @@ jobs:
           sudo apt update
           sudo apt install -y build-essential wget unzip file
 
-      - name: Download xz source
+      - name: Extract xz source from repo
         run: |
-          wget https://tukaani.org/xz/xz-${XZ_VERSION}.tar.gz
           tar xf xz-${XZ_VERSION}.tar.gz
 
       - name: Download Android NDK
