@@ -16,26 +16,29 @@ jobs:
       - name: Set version
         run: echo "XZ_VERSION=${{ github.event.inputs.version }}" >> $GITHUB_ENV
 
+      - name: Install dependencies
+        run: |
+          sudo apt update
+          sudo apt install -y build-essential wget unzip file
+
       - name: Download xz source
         run: |
           wget https://tukaani.org/xz/xz-${XZ_VERSION}.tar.gz
           tar xf xz-${XZ_VERSION}.tar.gz
-
-      - name: Install dependencies
-        run: |
-          sudo apt update
-          sudo apt install -y build-essential wget unzip
 
       - name: Download Android NDK
         run: |
           wget https://dl.google.com/android/repository/android-ndk-r26d-linux.zip
           unzip android-ndk-r26d-linux.zip
 
-      - name: Build xz
+      - name: Build static xz for Android ARM64
         run: |
           export NDK=$PWD/android-ndk-r26d
           export TOOLCHAIN=$NDK/toolchains/llvm/prebuilt/linux-x86_64/bin
+
           export CC=$TOOLCHAIN/aarch64-linux-android21-clang
+          export AR=$TOOLCHAIN/llvm-ar
+          export RANLIB=$TOOLCHAIN/llvm-ranlib
 
           cd xz-${XZ_VERSION}
 
@@ -50,19 +53,24 @@ jobs:
       - name: Prepare binary
         run: |
           mkdir release
-          cp xz-${XZ_VERSION}/src/xz/xz release/xz-${XZ_VERSION}-android-arm64
+          cp xz-${XZ_VERSION}/src/xz/xz release/xz
+          chmod +x release/xz
+
+      - name: Verify binary
+        run: |
+          file release/xz
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
-          name: xz-${{ env.XZ_VERSION }}-android-arm64
-          path: release/*
+          name: xz
+          path: release/xz
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
           tag_name: xz-${{ env.XZ_VERSION }}
           name: xz-${{ env.XZ_VERSION }} Android ARM64
-          files: release/*
+          files: release/xz
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
