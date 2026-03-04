@@ -1,25 +1,30 @@
-name: local repo xz Android ARM64
+name: local Build xz Android ARM64
 
 on:
   workflow_dispatch:
-    inputs:
-      version:
-        description: "Version label"
-        required: false
-        default: "custom"
 
 jobs:
   build:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout repository
+
+      - name: Checkout repo
         uses: actions/checkout@v4
 
-      - name: Install dependencies
+      - name: Install build dependencies
         run: |
           sudo apt update
-          sudo apt install -y build-essential unzip wget file
+          sudo apt install -y \
+          build-essential \
+          autoconf \
+          automake \
+          libtool \
+          pkg-config \
+          gettext \
+          wget \
+          unzip \
+          file
 
       - name: Download Android NDK
         run: |
@@ -31,13 +36,16 @@ jobs:
           echo "NDK=$PWD/android-ndk-r26d" >> $GITHUB_ENV
           echo "TOOLCHAIN=$PWD/android-ndk-r26d/toolchains/llvm/prebuilt/linux-x86_64/bin" >> $GITHUB_ENV
 
-      - name: Build xz
+      - name: Prepare autotools
+        run: |
+          chmod +x autogen.sh
+          ./autogen.sh
+
+      - name: Configure build
         run: |
           export CC=$TOOLCHAIN/aarch64-linux-android21-clang
           export AR=$TOOLCHAIN/llvm-ar
           export RANLIB=$TOOLCHAIN/llvm-ranlib
-
-          cd xz
 
           ./configure \
             --host=aarch64-linux-android \
@@ -45,12 +53,14 @@ jobs:
             --enable-static \
             LDFLAGS="-static"
 
+      - name: Compile
+        run: |
           make -j$(nproc)
 
       - name: Prepare binary
         run: |
           mkdir release
-          cp xz/src/xz/xz release/xz
+          cp src/xz/xz release/xz
           chmod +x release/xz
 
       - name: Verify binary
@@ -62,12 +72,3 @@ jobs:
         with:
           name: xz
           path: release/xz
-
-      - name: Create GitHub Release
-        uses: softprops/action-gh-release@v2
-        with:
-          tag_name: xz-${{ github.event.inputs.version }}
-          name: xz Android ARM64
-          files: release/xz
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
