@@ -9,8 +9,7 @@ jobs:
 
     steps:
 
-      - name: Checkout repository
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
       - name: Install dependencies
         run: |
@@ -20,9 +19,9 @@ jobs:
             autoconf \
             automake \
             libtool \
-            pkg-config \
             gettext \
             autopoint \
+            pkg-config \
             wget \
             unzip \
             file
@@ -32,28 +31,27 @@ jobs:
           wget https://dl.google.com/android/repository/android-ndk-r26d-linux.zip
           unzip android-ndk-r26d-linux.zip
 
-      - name: Setup NDK toolchain
+      - name: Setup toolchain
         run: |
-          echo "NDK=$PWD/android-ndk-r26d" >> $GITHUB_ENV
           echo "TOOLCHAIN=$PWD/android-ndk-r26d/toolchains/llvm/prebuilt/linux-x86_64/bin" >> $GITHUB_ENV
 
-      - name: Generate configure script
+      - name: Generate configure
         run: |
-          chmod +x autogen.sh
           ./autogen.sh
 
-      - name: Configure build
+      - name: Configure
         run: |
           ./configure \
             CC=$TOOLCHAIN/aarch64-linux-android21-clang \
-            AR=$TOOLCHAIN/llvm-ar \
-            RANLIB=$TOOLCHAIN/llvm-ranlib \
-            --host=aarch64-linux-gnu \
-            --disable-shared \
+            --host=aarch64-linux-android \
             --enable-static \
-            LDFLAGS="-static"
+            --disable-shared \
+            --disable-lzmadec \
+            --disable-lzmainfo \
+            --disable-xzdec \
+            --disable-scripts
 
-      - name: Compile xz
+      - name: Build
         run: |
           make -j$(nproc)
 
@@ -61,14 +59,12 @@ jobs:
         run: |
           mkdir release
           cp src/xz/xz release/xz
-          chmod +x release/xz
 
-      - name: Verify binary
+      - name: Verify
         run: |
           file release/xz
 
-      - name: Upload artifact
-        uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v4
         with:
           name: xz
           path: release/xz
