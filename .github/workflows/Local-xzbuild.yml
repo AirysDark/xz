@@ -9,10 +9,10 @@ jobs:
 
     steps:
 
-      - name: Checkout repo
+      - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Install build dependencies
+      - name: Install dependencies
         run: |
           sudo apt update
           sudo apt install -y \
@@ -31,12 +31,12 @@ jobs:
           wget https://dl.google.com/android/repository/android-ndk-r26d-linux.zip
           unzip android-ndk-r26d-linux.zip
 
-      - name: Setup NDK toolchain
+      - name: Setup toolchain
         run: |
           echo "NDK=$PWD/android-ndk-r26d" >> $GITHUB_ENV
           echo "TOOLCHAIN=$PWD/android-ndk-r26d/toolchains/llvm/prebuilt/linux-x86_64/bin" >> $GITHUB_ENV
 
-      - name: Prepare autotools
+      - name: Generate configure script
         run: |
           chmod +x autogen.sh
           ./autogen.sh
@@ -48,12 +48,12 @@ jobs:
           export RANLIB=$TOOLCHAIN/llvm-ranlib
 
           ./configure \
-            --host=aarch64-linux-android \
+            --host=aarch64-linux-gnu \
             --disable-shared \
             --enable-static \
             LDFLAGS="-static"
 
-      - name: Compile
+      - name: Compile xz
         run: |
           make -j$(nproc)
 
