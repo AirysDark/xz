@@ -2,16 +2,24 @@ name: Build xz Android ARM64
 
 on:
   workflow_dispatch:
+    inputs:
+      version:
+        description: "XZ version to build"
+        required: true
+        default: "5.4.6"
 
 jobs:
   build:
     runs-on: ubuntu-latest
 
     steps:
+      - name: Set version
+        run: echo "XZ_VERSION=${{ github.event.inputs.version }}" >> $GITHUB_ENV
+
       - name: Download xz source
         run: |
-          wget https://tukaani.org/xz/xz-5.4.6.tar.gz
-          tar xf xz-5.4.6.tar.gz
+          wget https://tukaani.org/xz/xz-${XZ_VERSION}.tar.gz
+          tar xf xz-${XZ_VERSION}.tar.gz
 
       - name: Install dependencies
         run: |
@@ -29,7 +37,7 @@ jobs:
           export TOOLCHAIN=$NDK/toolchains/llvm/prebuilt/linux-x86_64/bin
           export CC=$TOOLCHAIN/aarch64-linux-android21-clang
 
-          cd xz-5.4.6
+          cd xz-${XZ_VERSION}
 
           ./configure \
             --host=aarch64-linux-android \
@@ -39,8 +47,22 @@ jobs:
 
           make -j$(nproc)
 
+      - name: Prepare binary
+        run: |
+          mkdir release
+          cp xz-${XZ_VERSION}/src/xz/xz release/xz-${XZ_VERSION}-android-arm64
+
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
-          name: xz-android-arm64
-          path: xz-5.4.6/src/xz/xz
+          name: xz-${{ env.XZ_VERSION }}-android-arm64
+          path: release/*
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: xz-${{ env.XZ_VERSION }}
+          name: xz-${{ env.XZ_VERSION }} Android ARM64
+          files: release/*
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
